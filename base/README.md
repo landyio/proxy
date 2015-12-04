@@ -1,0 +1,1 @@
+This is dockerfile for base image, which is used to build Proxy & Fetcher containers

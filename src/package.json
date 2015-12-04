@@ -1,0 +1,15 @@
+{
+    "name": "resources-proxy",
+    "private": true,
+    "version": "0.1.0",
+    "description": "Landy resources proxy",
+    "author": "Dmitry Tsepelev <dmitry.tsepelev@landy.io>",
+    "dependencies": {
+        "http": "*",
+        "url": "*",
+        "request": "*",
+        "https": "*",
+        "fs": "*",
+        "cluster": "*"
+    }
+}
