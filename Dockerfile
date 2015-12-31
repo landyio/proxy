@@ -1,8 +1,15 @@
-FROM dtsepelev/base:latest
+FROM ubuntu
 MAINTAINER Dmitry Tsepelev
+
+RUN sudo apt-get update
+RUN sudo apt-get install -y nodejs
+RUN sudo apt-get install -y npm
 
 COPY src /src/
 RUN cd /src; npm install
 ENV NODE_ENV="production"
-EXPOSE  9000
-CMD ["nodejs", "/src/app.js"]
+ENV editorJs="https://d2mnlxdd0x11jg.cloudfront.net/editor.min.js"
+ENV proxyUrl="https://proxy.landy.io/"
+ENV sameOrigin = "landy.io"
+EXPOSE 443
+CMD ["nodejs", "/src/index.js"]

@@ -1,0 +1,39 @@
+{
+  "extends": "node_modules/eslint-config-airbnb/.eslintrc",
+  "parser": "babel-eslint",
+  "env": {
+    "browser": true,
+    "node": true,
+    "meteor": true,
+  },
+
+  "rules": {
+    "quotes": [2, "single"],
+    "eol-last": [0],
+    "no-mixed-requires": [0],
+    "no-underscore-dangle": [0],
+    "no-extra-strict": [0],
+    "strict": [0],
+    "curly": [0]
+  },
+
+  "globals": {
+    // define your apps globals here
+    
+    // Packages
+    "Picker": true,
+    "FlowRouter": true,
+    "BlazeLayout": true,
+    "GeoJSON": false,
+    "EventEmitter": false,
+    
+    // Components
+    "Template": true,
+    "Session": true,
+    "Meteor": true,
+    
+
+    // Collections
+    "Campaigns": true
+  }
+}
