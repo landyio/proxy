@@ -12,7 +12,7 @@ const pathToRegexp = require('path-to-regexp')
 
 // Defining enviroment variables
 
-const editorJs = process.env.editorJs || 'http://localhost:7000/proxyv2/editor.js'
+const editorJs = process.env.editorJs || 'http://localhost:7000/proxy/editor.js'
 const proxyUrl = process.env.proxyUrl || 'http://proxy.landy.dev/'
 const env = process.env.NODE_ENV || 'dev'
 const sameOriginDomain = process.env.sameOrigin || 'landy.dev'
@@ -34,7 +34,7 @@ let relativeHost = ''
  */
 function onRequest(req, res) {
 
-  //Parse and decode incoming url as parameter
+  // Parse and decode incoming url as parameter
 
   const keys = []
   const re = pathToRegexp('/:url+', keys)
@@ -141,16 +141,16 @@ head.func = function (node) {
 
   const stm = node.createStream()
 
-  //variable to hold all the info from the head tag
+  // Variable to hold all the info from the head tag
   let tag = ''
 
 
-  //Collect all the data in the stream
+  // Collect all the data in the stream
   stm.on('data', function (data) {
     tag += data
   })
 
-  //Updating head tag on the end of stream
+  // Updating head tag on the end of stream
   stm.on('end', function () {
 
     // Removing google analytics and tag manager scripts
