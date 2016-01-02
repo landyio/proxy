@@ -1,21 +1,21 @@
-const https = require('https'),
-  http = require('http'),
-  fs = require('fs'),
-  httpProxy = require('http-proxy'),
-  cluster = require('cluster'),
-  connect = require('connect'),
-  url = require('url'),
-  harmon = require('harmon'),
-  request = require('request'),
-  pathToRegexp = require('path-to-regexp')
+const https = require('https') 
+const http = require('http') 
+const fs = require('fs') 
+const httpProxy = require('http-proxy') 
+const cluster = require('cluster') 
+const connect = require('connect') 
+const url = require('url') 
+const harmon = require('harmon') 
+const request = require('request') 
+const pathToRegexp = require('path-to-regexp')
 
 
 // Defining enviroment variables
 
-const editorJs = process.env.editorJs || 'http://localhost:7000/proxyv2/editor.js',
-  proxyUrl = process.env.proxyUrl || 'http://proxy.landy.dev/',
-  env = process.env.NODE_ENV || 'dev',
-  sameOriginDomain = process.env.sameOrigin || 'landy.dev'
+const editorJs = process.env.editorJs || 'http://localhost:7000/proxyv2/editor.js'
+const proxyUrl = process.env.proxyUrl || 'http://proxy.landy.dev/'
+const env = process.env.NODE_ENV || 'dev'
+const sameOriginDomain = process.env.sameOrigin || 'landy.dev'
 
 
 
@@ -29,44 +29,44 @@ let relativeHost = ''
 
 
 /**
- * onRequest() parse incoming URL parameter,
- * process it through proxy
+ * onRequest() parse incoming URL parameter and
+ * returns resource at this location through proxy
  */
 function onRequest(req, res) {
 
   //Parse and decode incoming url as parameter
-  const keys = [],
-    re = pathToRegexp('/:url+', keys),
-    uri = re.exec(req.url)
+
+  const keys = []
+  const re = pathToRegexp('/:url+', keys)
+  const uri = re.exec(req.url)
 
 
-  const uriParam = uri[1];
-  
-  let urlParam = decodeURIComponent(uriParam);
-
+  const uriParam = uri[1]
+  let urlParam = decodeURIComponent(uriParam)
 
 
   /**
-   * Validate if path is relative instead of full 
+   * Validate if path is non-full 
    * and contains referrer url in headers
    */
-  const isValidRelativePath = (urlParam.indexOf('//') === -1 &&
-    req.headers.referer);
+  const isNotFullPath = (urlParam.indexOf('http') !== 0 &&
+    req.headers.referer)
 
 
-  if (isValidRelativePath) {
+  if (isNotFullPath) {
 
-    const newUri = url.parse(req.headers.referer, true).pathname;
+    const newPathName = url.parse(req.headers.referer, true).pathname
+    const newUri = re.exec(newPathName)
 
-    // Stop request in case if there is no referrer
-    if (!re.exec(newUri)) {
+    // Stop request if referrer is valid
+    if (!newUri) {
       res.end()
       return
     }
 
     // Update proxied url
-    const targetHost = re.exec(newUri)[1],
-      targetHostObj = url.parse(decodeURIComponent(targetHost), true)
+    const targetHost = newUri[1]
+    const targetHostObj = url.parse(decodeURIComponent(targetHost), true)
 
     urlParam = targetHostObj.protocol + '//' + targetHostObj.host + '/' + urlParam
 
@@ -132,8 +132,8 @@ function onRequest(req, res) {
  * Updating HTML Dom
  */
 
-const selects = [],
-  head = {}
+const selects = []
+const head = {}
 
 // Update head tag
 head.query = 'head'
