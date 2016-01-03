@@ -1,12 +1,12 @@
-const https = require('https') 
-const http = require('http') 
-const fs = require('fs') 
-const httpProxy = require('http-proxy') 
-const cluster = require('cluster') 
-const connect = require('connect') 
-const url = require('url') 
-const harmon = require('harmon') 
-const request = require('request') 
+const https = require('https')
+const http = require('http')
+const fs = require('fs')
+const httpProxy = require('http-proxy')
+const cluster = require('cluster')
+const connect = require('connect')
+const url = require('url')
+const harmon = require('harmon')
+const request = require('request')
 const pathToRegexp = require('path-to-regexp')
 
 
@@ -18,12 +18,11 @@ const env = process.env.NODE_ENV || 'dev'
 const sameOriginDomain = process.env.sameOrigin || 'landy.dev'
 
 
-
 // Creating http proxy
 const proxy = httpProxy.createProxyServer({})
 
 
-// Defining proxied page host to update 
+// Defining proxied page host to update
 // base parameter in HTML Dom
 let relativeHost = ''
 
@@ -33,7 +32,6 @@ let relativeHost = ''
  * returns resource at this location through proxy
  */
 function onRequest(req, res) {
-
   // Parse and decode incoming url as parameter
 
   const keys = []
@@ -46,7 +44,7 @@ function onRequest(req, res) {
 
 
   /**
-   * Validate if path is non-full 
+   * Validate if path is non-full
    * and contains referrer url in headers
    */
   const isNotFullPath = (urlParam.indexOf('http') !== 0 &&
@@ -54,7 +52,6 @@ function onRequest(req, res) {
 
 
   if (isNotFullPath) {
-
     const newPathName = url.parse(req.headers.referer, true).pathname
     const newUri = re.exec(newPathName)
 
@@ -69,7 +66,6 @@ function onRequest(req, res) {
     const targetHostObj = url.parse(decodeURIComponent(targetHost), true)
 
     urlParam = targetHostObj.protocol + '//' + targetHostObj.host + '/' + urlParam
-
   }
 
 
@@ -77,7 +73,7 @@ function onRequest(req, res) {
     followAllRedirects: false,
     uri: urlParam,
     timeout: 5000,
-    strictSSL: false
+    strictSSL: false,
   }
 
 
@@ -85,8 +81,7 @@ function onRequest(req, res) {
    * request() checks if there is redirect
    * on proxied url and pass it to proxy
    */
-  request(requestOptions, function (error, response, body) {
-
+  request(requestOptions, (error, response) => {
     const redirectExist = (response &&
       response.request &&
       response.request.uri &&
@@ -106,8 +101,8 @@ function onRequest(req, res) {
       secure: false,
       target: relativeHost,
       headers: {
-        host: urlObj.hostname
-      }
+        host: urlObj.hostname,
+      },
     }
 
     if (urlObj.protocol === 'https') options.agent = https.globalAgent
@@ -117,15 +112,11 @@ function onRequest(req, res) {
 
     try {
       proxy.web(req, res, options)
-    }
-    catch (e) {
+    } catch (e) {
       console.log(e)
     }
-
   })
-
 }
-
 
 
 /**
@@ -137,8 +128,7 @@ const head = {}
 
 // Update head tag
 head.query = 'head'
-head.func = function (node) {
-
+head.func = (node) => {
   const stm = node.createStream()
 
   // Variable to hold all the info from the head tag
@@ -146,13 +136,12 @@ head.func = function (node) {
 
 
   // Collect all the data in the stream
-  stm.on('data', function (data) {
+  stm.on('data', (data) => {
     tag += data
   })
 
   // Updating head tag on the end of stream
-  stm.on('end', function () {
-
+  stm.on('end', () => {
     // Removing google analytics and tag manager scripts
     tag = tag.replace(
       /(<script.*google-analytics.*\/script>)|(<script.*googletagmanager.*\/script>)|(<noscript.*googletagmanager.*\/noscript>)/gim,
@@ -162,8 +151,7 @@ head.func = function (node) {
       '<script>document.domain = "' + sameOriginDomain + '";</script>' +
       '<meta name="referrer" content="origin-when-crossorigin">' +
       tag)
-
-  });
+  })
 }
 
 selects.push(head)
@@ -171,41 +159,36 @@ selects.push(head)
 // Update body tag
 const body = {}
 body.query = 'body'
-body.func = function (node) {
-
+body.func = (node) => {
   const stm = node.createStream({})
   let tag = ''
 
 
-  stm.on('data', function (data) {
+  stm.on('data', (data) => {
     tag += data
   })
 
-  stm.on('end', function () {
-
+  stm.on('end', () => {
     // Append editor.js to manipulate DOM
     stm.end(tag +
       '<script src="' + editorJs + '"></script>')
-
   })
 }
 
 selects.push(body)
 
 
-
 const app = connect()
 
 
 /**
- * Update headers to allow embedding resource 
+ * Update headers to allow embedding resource
  * in iframe and cross-origin resources
  */
 
-app.use(function (req, res, next) {
-
+app.use((req, res, next) => {
   res.oldWriteHead = res.writeHead
-  res.writeHead = function (statusCode, headers) {
+  res.writeHead = (statusCode, headers) => {
     res.removeHeader('X-Frame-Options')
     res.removeHeader('Access-Control-Allow-Origin')
     res.setHeader('Access-Control-Allow-Origin', proxyUrl)
@@ -236,22 +219,20 @@ if (cluster.isMaster) {
     cluster.fork()
   }
 
-  cluster.on('exit', function (worker, code, signal) {
+  cluster.on('exit', (worker) => {
     const date = new Date()
     console.log(date + ': worker ' + worker.process.pid + ' died')
   })
-
 } else {
-
-  if (env === "dev") {
+  if (env === 'dev') {
     http.createServer(app).listen(3333)
   }
 
-  if (env === "production") {
+  if (env === 'production') {
     const certs = {
       key: fs.readFileSync('/etc/ssl/certs/server.key'),
       cert: fs.readFileSync('/etc/ssl/certs/proxy_landy_io.crt'),
-      ca: fs.readFileSync('/etc/ssl/certs/proxy_landy_io.ca-bundle')
+      ca: fs.readFileSync('/etc/ssl/certs/proxy_landy_io.ca-bundle'),
     }
 
     https.createServer(certs, app).listen(443)
@@ -259,7 +240,7 @@ if (cluster.isMaster) {
 }
 
 
-process.on('uncaughtException', function (err) {
+process.on('uncaughtException', (err) => {
   console.error((new Date).toUTCString() + ' uncaughtException:', err.message)
   console.error(err.stack)
   process.exit(1)

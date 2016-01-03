@@ -1,6 +1,5 @@
 {
-  "extends": "node_modules/eslint-config-airbnb/.eslintrc",
-  "parser": "babel-eslint",
+  "extends": "airbnb/base",
   "env": {
     "browser": true,
     "node": true,
@@ -12,9 +11,10 @@
     "eol-last": [0],
     "no-mixed-requires": [0],
     "no-underscore-dangle": [0],
-    "no-extra-strict": [0],
-    "strict": [0],
-    "curly": [0]
+    "no-extra-strict": 0,
+    "strict": 0,
+    "curly": [0],
+    "semi": [2, "never"]
   },
 
   "globals": {
@@ -26,6 +26,9 @@
     "BlazeLayout": true,
     "GeoJSON": false,
     "EventEmitter": false,
+    "Roles": true,
+    "BrowserDetect": true,
+    "jQuery": true,
     
     // Components
     "Template": true,
@@ -34,6 +37,12 @@
     
 
     // Collections
-    "Campaigns": true
+    "Campaigns": true,
+
+	// Global variables
+	"hooks": true,
+	"CssSelectorGenerator": true,
+	"ElementName": true,
+	"ElementProcessor": true,
   }
 }
