@@ -12,7 +12,7 @@ const pathToRegexp = require('path-to-regexp')
 
 // Defining enviroment variables
 
-const editorJs = process.env.editorJs || 'http://localhost:7000/proxy/editor.js'
+const editorJs = process.env.editorJs || 'https://d2mnlxdd0x11jg.cloudfront.net/editor.min.js'
 const proxyUrl = process.env.proxyUrl || 'http://proxy.landy.dev/'
 const env = process.env.NODE_ENV || 'dev'
 const sameOriginDomain = process.env.sameOrigin || 'landy.dev'
@@ -65,6 +65,12 @@ function onRequest(req, res) {
     const targetHost = newUri[1]
     const targetHostObj = url.parse(decodeURIComponent(targetHost), true)
 
+    // Stop request if targetHost is not an url
+    if (!targetHostObj.protocol || !targetHostObj.host) {
+      res.end()
+      return
+    }
+
     urlParam = targetHostObj.protocol + '//' + targetHostObj.host + '/' + urlParam
   }
 
@@ -72,7 +78,7 @@ function onRequest(req, res) {
   const requestOptions = {
     followAllRedirects: false,
     uri: urlParam,
-    timeout: 5000,
+    timeout: 2000,
     strictSSL: false,
   }
 
