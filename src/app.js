@@ -106,6 +106,7 @@ function onRequest(req, res) {
       changeOrigin: true,
       secure: false,
       target: relativeHost,
+      ws: true,
       headers: {
         host: urlObj.hostname,
       },
