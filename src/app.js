@@ -8,6 +8,7 @@ const url = require('url')
 const harmon = require('harmon')
 const request = require('request')
 const pathToRegexp = require('path-to-regexp')
+const Cookies = require('cookies')
 
 
 // Defining enviroment variables
@@ -24,7 +25,8 @@ const proxy = httpProxy.createProxyServer({})
 
 // Defining proxied page host to update
 // base parameter in HTML Dom
-let relativeHost = ''
+let urlParam
+let pagePathName
 
 
 /**
@@ -40,38 +42,27 @@ function onRequest(req, res) {
 
 
   const uriParam = uri[1]
-  let urlParam = decodeURIComponent(uriParam)
-
+  urlParam = decodeURIComponent(uriParam)
 
   /**
    * Validate if path is non-full
-   * and contains referrer url in headers
+   * and contains updates from 'campaignURL' cookie,
+   * which is set on the Meteor side
    */
-  const isNotFullPath = (urlParam.indexOf('http') !== 0 &&
-    req.headers.referer)
+  const isNotFullPath = (urlParam.indexOf('http') !== 0)
 
 
   if (isNotFullPath) {
-    const newPathName = url.parse(req.headers.referer, true).pathname
-    const newUri = re.exec(newPathName)
+    const cookies = new Cookies(req, res)
+    const parentUrl = decodeURIComponent(cookies.get('campaignURL'))
 
-    // Stop request if referrer is valid
-    if (!newUri) {
+    if (!parentUrl) {
+      res.status(404)
       res.end()
       return
     }
 
-    // Update proxied url
-    const targetHost = newUri[1]
-    const targetHostObj = url.parse(decodeURIComponent(targetHost), true)
-
-    // Stop request if targetHost is not an url
-    if (!targetHostObj.protocol || !targetHostObj.host) {
-      res.end()
-      return
-    }
-
-    urlParam = targetHostObj.protocol + '//' + targetHostObj.host + '/' + urlParam
+    urlParam = url.resolve(parentUrl, urlParam)
   }
 
 
@@ -99,7 +90,9 @@ function onRequest(req, res) {
     const urlObj = url.parse(urlParam, true)
 
 
-    relativeHost = urlObj.protocol + '//' + urlObj.host
+    const relativeHost = urlObj.protocol + '//' + urlObj.host
+
+    pagePathName = urlObj.path
 
 
     const options = {
@@ -115,6 +108,7 @@ function onRequest(req, res) {
     if (urlObj.protocol === 'https') options.agent = https.globalAgent
 
 
+    delete req.headers.cookies
     req.url = urlParam
 
     try {
@@ -131,11 +125,11 @@ function onRequest(req, res) {
  */
 
 const selects = []
-const head = {}
+const headTag = {}
 
 // Update head tag
-head.query = 'head'
-head.func = (node) => {
+headTag.query = 'head'
+headTag.func = (node) => {
   const stm = node.createStream()
 
   // Variable to hold all the info from the head tag
@@ -154,19 +148,18 @@ head.func = (node) => {
       /(<script.*google-analytics.*\/script>)|(<script.*googletagmanager.*\/script>)|(<noscript.*googletagmanager.*\/noscript>)/gim,
       '')
 
-    stm.end('<base href="' + proxyUrl + encodeURIComponent(relativeHost) + '/">' +
-      '<script>document.domain = "' + sameOriginDomain + '";</script>' +
+    stm.end('<script>document.domain = "' + sameOriginDomain + '";</script>' +
       '<meta name="referrer" content="origin-when-crossorigin">' +
       tag)
   })
 }
 
-selects.push(head)
+selects.push(headTag)
 
 // Update body tag
-const body = {}
-body.query = 'body'
-body.func = (node) => {
+const bodyTag = {}
+bodyTag.query = 'body'
+bodyTag.func = (node) => {
   const stm = node.createStream({})
   let tag = ''
 
@@ -176,13 +169,15 @@ body.func = (node) => {
   })
 
   stm.on('end', () => {
+    // Update path name for Angular / Meteor support
     // Append editor.js to manipulate DOM
     stm.end(tag +
+      '<script>window.history.pushState("", "", "' + pagePathName + '");</script>' +
       '<script src="' + editorJs + '"></script>')
   })
 }
 
-selects.push(body)
+selects.push(bodyTag)
 
 
 const app = connect()
@@ -231,8 +226,10 @@ if (cluster.isMaster) {
     console.log(date + ': worker ' + worker.process.pid + ' died')
   })
 } else {
+  let proxyServer
+
   if (env === 'dev') {
-    http.createServer(app).listen(3333)
+    proxyServer = http.createServer(app).listen(3333)
   }
 
   if (env === 'production') {
@@ -242,8 +239,31 @@ if (cluster.isMaster) {
       ca: fs.readFileSync('/etc/ssl/certs/proxy_landy_io.ca-bundle'),
     }
 
-    https.createServer(certs, app).listen(443)
+    proxyServer = https.createServer(certs, app).listen(443)
   }
+
+  proxyServer.on('upgrade', (req, socket, head) => {
+    const isNotFullPath = (req.url.indexOf('ws') !== 0)
+
+    // Update req.url from cookies in case if path is not full
+    if (isNotFullPath) {
+      const cookies = new Cookies(req)
+      const campaignURL = decodeURIComponent(cookies.get('campaignURL'))
+
+      let socketURL = url.resolve(campaignURL, req.url)
+
+      socketURL = socketURL.replace('http', 'ws')
+
+      req.url = socketURL
+    }
+
+
+    try {
+      proxy.ws(req, socket, head)
+    } catch (e) {
+      console.log(e)
+    }
+  })
 }
 
 
