@@ -25,7 +25,6 @@ const proxy = httpProxy.createProxyServer({})
 
 // Defining proxied page host to update
 // base parameter in HTML Dom
-let urlParam
 let pagePathName
 
 
@@ -42,7 +41,7 @@ function onRequest(req, res) {
 
 
   const uriParam = uri[1]
-  urlParam = decodeURIComponent(uriParam)
+  let urlParam = decodeURIComponent(uriParam)
 
   /**
    * Validate if path is non-full
@@ -57,8 +56,7 @@ function onRequest(req, res) {
     const parentUrl = decodeURIComponent(cookies.get('campaignURL'))
 
     if (!parentUrl) {
-      res.status(404)
-      res.end()
+      res.status(404).end()
       return
     }
 
