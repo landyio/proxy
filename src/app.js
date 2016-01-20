@@ -231,13 +231,7 @@ if (cluster.isMaster) {
   }
 
   if (env === 'production') {
-    const certs = {
-      key: fs.readFileSync('/etc/ssl/certs/server.key'),
-      cert: fs.readFileSync('/etc/ssl/certs/proxy_landy_io.crt'),
-      ca: fs.readFileSync('/etc/ssl/certs/proxy_landy_io.ca-bundle'),
-    }
-
-    proxyServer = https.createServer(certs, app).listen(443)
+    proxyServer = http.createServer(app).listen(80)
   }
 
   proxyServer.on('upgrade', (req, socket, head) => {
