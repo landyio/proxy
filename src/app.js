@@ -39,6 +39,10 @@ function onRequest(req, res) {
   const re = pathToRegexp('/:url+', keys)
   const uri = re.exec(req.url)
 
+  if (!uri) {
+    res.end()
+    return
+  }
 
   const uriParam = uri[1]
   let urlParam = decodeURIComponent(uriParam)
@@ -56,7 +60,7 @@ function onRequest(req, res) {
     const parentUrl = decodeURIComponent(cookies.get('campaignURL'))
 
     if (!parentUrl) {
-      res.status(404).end()
+      res.end()
       return
     }
 
