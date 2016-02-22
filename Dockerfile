@@ -1,11 +1,6 @@
-FROM ubuntu
+FROM node:5.6.0
 MAINTAINER Dmitry Tsepelev
 
-RUN sudo apt-get update
-RUN sudo apt-get install -y curl
-RUN curl -sL https://deb.nodesource.com/setup_5.x | sudo -E bash -
-RUN sudo apt-get install -y nodejs
-RUN sudo apt-get install -y npm
 
 COPY package.json ./
 COPY src /src/
@@ -15,4 +10,4 @@ ENV editorJs="https://d2mnlxdd0x11jg.cloudfront.net/editor.min.js"
 ENV proxyUrl="https://proxy.landy.io/"
 ENV sameOrigin="landy.io"
 EXPOSE 80
-CMD ["nodejs", "/src/index.js"]
+CMD ["npm", "start"]

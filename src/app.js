@@ -229,14 +229,14 @@ if (cluster.isMaster) {
   })
 } else {
   let proxyServer
+  let port
 
-  if (env === 'dev') {
-    proxyServer = http.createServer(app).listen(3333)
-  }
+  if (env === 'dev') port = 3333
+  if (env === 'production') port = 80
 
-  if (env === 'production') {
-    proxyServer = http.createServer(app).listen(80)
-  }
+  proxyServer = http.createServer(app).listen(port)
+
+  console.log('Worker started')
 
   proxyServer.on('upgrade', (req, socket, head) => {
     const isNotFullPath = (req.url.indexOf('ws') !== 0)
