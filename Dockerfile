@@ -2,7 +2,7 @@ FROM ubuntu
 MAINTAINER Dmitry Tsepelev
 
 RUN sudo apt-get update
-RUN sudo apt-get install curl
+RUN sudo apt-get install -y curl
 RUN curl -sL https://deb.nodesource.com/setup_5.x | sudo -E bash -
 RUN sudo apt-get install -y nodejs
 RUN sudo apt-get install -y npm
