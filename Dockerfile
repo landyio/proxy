@@ -12,5 +12,5 @@ ENV NODE_ENV="production"
 ENV editorJs="https://d2mnlxdd0x11jg.cloudfront.net/editor.min.js"
 ENV proxyUrl="https://proxy.landy.io/"
 ENV sameOrigin="landy.io"
-EXPOSE 443
+EXPOSE 80
 CMD ["nodejs", "/src/index.js"]
