@@ -1,6 +1,5 @@
 const https = require('https')
 const http = require('http')
-const fs = require('fs')
 const httpProxy = require('http-proxy')
 const cluster = require('cluster')
 const connect = require('connect')
@@ -29,23 +28,58 @@ let pagePathName
 
 
 /**
+ * Compare domain and path to confirm
+ * that redirect is allowed. Otherwise landy.js
+ * would not be able to identify the page, when
+ * it will be installed
+ * @param  {String} url1 Original URL
+ * @param  {String} url2 Redirect URL
+ * @return {Boolean}
+ */
+function compareUrls(url1, url2) {
+  const urlObj1 = url.parse(url1)
+  const urlObj2 = url.parse(url2)
+
+  const pathCorrect = (urlObj1.pathname === urlObj2.pathname)
+
+  const domain1 = urlObj1.hostname.replace(/^www./, '')
+  const domain2 = urlObj2.hostname.replace(/^www./, '')
+  const domainCorrect = (domain1 === domain2)
+
+  return pathCorrect && domainCorrect
+}
+
+
+/**
  * onRequest() parse incoming URL parameter and
  * returns resource at this location through proxy
  */
 function onRequest(req, res) {
+  let urlParam
+
+  /**
+   * Validate if req.url was not encoded. This is a signal
+   * of appended slash before full URL. Used for scripts and
+   * stylesheets with full path on http protocol
+   */
+  if (req.url.indexOf('/http://') === 0) {
+    urlParam = req.url.slice(1)
+  }
   // Parse and decode incoming url as parameter
+  if (!urlParam) {
+    const keys = []
+    const re = pathToRegexp('/:url+', keys)
+    const uri = re.exec(req.url)
 
-  const keys = []
-  const re = pathToRegexp('/:url+', keys)
-  const uri = re.exec(req.url)
+    if (!uri) {
+      res.end()
+      return
+    }
 
-  if (!uri) {
-    res.end()
-    return
+    const uriParam = uri[1]
+    urlParam = decodeURIComponent(uriParam)
   }
 
-  const uriParam = uri[1]
-  let urlParam = decodeURIComponent(uriParam)
 
   /**
    * Validate if path is non-full
@@ -75,18 +109,18 @@ function onRequest(req, res) {
     strictSSL: false,
   }
 
-
   /**
    * request() checks if there is redirect
    * on proxied url and pass it to proxy
    */
   request(requestOptions, (error, response) => {
-    const redirectExist = (response &&
+    const validRedirect = (response &&
       response.request &&
       response.request.uri &&
-      response.request.uri.href !== urlParam)
+      response.request.uri.href !== urlParam &&
+      compareUrls(response.request.uri.href, urlParam))
 
-    if (redirectExist) urlParam = response.request.uri.href
+    if (validRedirect) urlParam = response.request.uri.href
 
 
     const urlObj = url.parse(urlParam, true)
@@ -112,10 +146,10 @@ function onRequest(req, res) {
 
     delete req.headers.cookies
     req.url = urlParam
-
     try {
       proxy.web(req, res, options)
     } catch (e) {
+      console.log(urlParam)
       console.log(e)
     }
   })
@@ -127,9 +161,38 @@ function onRequest(req, res) {
  */
 
 const selects = []
-const headTag = {}
+
+/**
+ * Search for full links in stylesheet and script links.
+ * Replaces with relative links
+ */
+const hrefTags = {}
+hrefTags.query = 'link[rel="stylesheet"], script[href="*"]'
+hrefTags.func = (node) => {
+  const stm = node.createStream({ outer: true })
+
+  // Variable to hold all the info from the query
+  let tag = ''
+
+
+  // Collect all the data in the stream
+  stm.on('data', (data) => {
+    tag += data
+  })
+
+  // Updating head tag on the end of stream
+  stm.on('end', () => {
+    tag = tag.replace('http://', '/http://')
+    // Removing google analytics and tag manager scripts
+    stm.end(tag)
+  })
+}
+
+selects.push(hrefTags)
+
 
 // Update head tag
+const headTag = {}
 headTag.query = 'head'
 headTag.func = (node) => {
   const stm = node.createStream()
@@ -194,12 +257,12 @@ app.use((req, res, next) => {
   res.oldWriteHead = res.writeHead
   res.writeHead = (statusCode, headers) => {
     res.removeHeader('X-Frame-Options')
+    res.removeHeader('X-Content-Security-Policy')
     res.removeHeader('Access-Control-Allow-Origin')
     res.setHeader('Access-Control-Allow-Origin', proxyUrl)
 
     res.oldWriteHead(statusCode, headers)
   }
-
   next()
 })
 
@@ -253,11 +316,11 @@ if (cluster.isMaster) {
       req.url = socketURL
     }
 
-
     try {
       proxy.ws(req, socket, head)
     } catch (e) {
       console.log(e)
+      if (req) console.log(req.url)
     }
   })
 }
