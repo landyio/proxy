@@ -166,80 +166,83 @@ const selects = []
  * Search for full links in stylesheet and script links.
  * Replaces with relative links
  */
-const hrefTags = {}
-hrefTags.query = 'link[rel="stylesheet"], script[href="*"]'
-hrefTags.func = (node) => {
-  const stm = node.createStream({ outer: true })
+const hrefTags = {
+  query: 'link[rel="stylesheet"], script[href="*"]',
 
-  // Variable to hold all the info from the query
-  let tag = ''
+  func(node) {
+    const stm = node.createStream({ outer: true })
 
+    // Variable to hold all the info from the query
+    let tag = ''
 
-  // Collect all the data in the stream
-  stm.on('data', (data) => {
-    tag += data
-  })
+    // Collect all the data in the stream
+    stm.on('data', (data) => {
+      tag += data
+    })
 
-  // Updating head tag on the end of stream
-  stm.on('end', () => {
-    tag = tag.replace('http://', '/http://')
-    // Removing google analytics and tag manager scripts
-    stm.end(tag)
-  })
+    // Updating head tag on the end of stream
+    stm.on('end', () => {
+      tag = tag.replace('http://', '/http://')
+      // Removing google analytics and tag manager scripts
+      stm.end(tag)
+    })
+  },
 }
 
 selects.push(hrefTags)
 
 
 // Update head tag
-const headTag = {}
-headTag.query = 'head'
-headTag.func = (node) => {
-  const stm = node.createStream()
+const headTag = {
+  query: 'head',
+
+  func(node) {
+    const stm = node.createStream()
 
   // Variable to hold all the info from the head tag
-  let tag = ''
+    let tag = ''
 
+    // Collect all the data in the stream
+    stm.on('data', (data) => {
+      tag += data
+    })
 
-  // Collect all the data in the stream
-  stm.on('data', (data) => {
-    tag += data
-  })
+    // Updating head tag on the end of stream
+    stm.on('end', () => {
+      // Removing google analytics and tag manager scripts
+      tag = tag.replace(
+        /(<script.*google-analytics.*\/script>)|(<script.*googletagmanager.*\/script>)|(<noscript.*googletagmanager.*\/noscript>)/gim,
+        '')
 
-  // Updating head tag on the end of stream
-  stm.on('end', () => {
-    // Removing google analytics and tag manager scripts
-    tag = tag.replace(
-      /(<script.*google-analytics.*\/script>)|(<script.*googletagmanager.*\/script>)|(<noscript.*googletagmanager.*\/noscript>)/gim,
-      '')
-
-    stm.end('<script>document.domain = "' + sameOriginDomain + '";</script>' +
-      '<meta name="referrer" content="origin-when-crossorigin">' +
-      tag)
-  })
+      stm.end('<script>document.domain = "' + sameOriginDomain + '";</script>' +
+        '<meta name="referrer" content="origin-when-crossorigin">' +
+        tag)
+    })
+  },
 }
 
 selects.push(headTag)
 
 // Update body tag
-const bodyTag = {}
-bodyTag.query = 'body'
-bodyTag.func = (node) => {
-  const stm = node.createStream({})
-  let tag = ''
+const bodyTag = {
+  query: 'body',
 
+  func(node) {
+    const stm = node.createStream({})
+    let tag = ''
 
-  stm.on('data', (data) => {
-    tag += data
-  })
+    stm.on('data', (data) => {
+      tag += data
+    })
 
-  stm.on('end', () => {
-    // Update path name for Angular / Meteor support
-    // Append editor.js to manipulate DOM
-    stm.end(tag +
-      '<script>window.history.pushState("", "", "' + pagePathName + '");</script>' +
-      '<script src="' + editorJs + '"></script>')
-  })
+    stm.on('end', () => {
+      // Update path name for Angular / Meteor support
+      // Append editor.js to manipulate DOM
+      stm.end(tag +
+        '<script>window.history.pushState("", "", "' + pagePathName + '");</script>' +
+        '<script src="' + editorJs + '"></script>')
+    })
+  },
 }
 
 selects.push(bodyTag)
