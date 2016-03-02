@@ -143,7 +143,6 @@ function onRequest(req, res) {
 
     if (urlObj.protocol === 'https') options.agent = https.globalAgent
 
-
     delete req.headers.cookies
     req.url = urlParam
     try {
@@ -167,7 +166,7 @@ const selects = []
  * Replaces with relative links
  */
 const hrefTags = {
-  query: 'link[rel="stylesheet"], script[href="*"]',
+  query: 'link[rel="stylesheet"], script[src]',
 
   func(node) {
     const stm = node.createStream({ outer: true })
