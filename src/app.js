@@ -40,7 +40,12 @@ function compareUrls(url1, url2) {
   const urlObj1 = url.parse(url1)
   const urlObj2 = url.parse(url2)
 
-  const pathCorrect = (urlObj1.pathname === urlObj2.pathname)
+  if (!urlObj1 || !urlObj2) return false
+
+  const pathname1 = urlObj1.pathname.replace(/\/$/, '')
+  const pathname2 = urlObj2.pathname.replace(/\/$/, '')
+
+  const pathCorrect = (pathname1 === pathname2)
 
   const domain1 = urlObj1.hostname.replace(/^www./, '')
   const domain2 = urlObj2.hostname.replace(/^www./, '')
