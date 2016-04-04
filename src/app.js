@@ -9,6 +9,7 @@ const request = require('request')
 const pathToRegexp = require('path-to-regexp')
 const Cookies = require('cookies')
 const helmet = require('helmet')
+const compression = require('compression')
 
 
 // Defining enviroment variables
@@ -153,6 +154,7 @@ app.use(harmon([], selects, true))
  */
 function onRequest(req, res, next) {
   let urlParam
+
   /**
    * Validate if req.url was not encoded. This is a signal
    * of appended slash before full URL. Used for scripts and
@@ -263,6 +265,8 @@ app.use(helmet.csp({
   setAllHeaders: true,
 }))
 
+// Compress response
+app.use(compression())
 
 /**
  * Proxing incoming url
@@ -283,7 +287,7 @@ function proxyRequest(req, res) {
   }
 
   if (urlObj.protocol === 'https') options.agent = https.globalAgent
-
+  console.log(req.url)
   try {
     proxy.web(req, res, options)
   } catch (e) {

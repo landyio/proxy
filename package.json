@@ -6,6 +6,7 @@
   "author": "Dmitry Tsepelev <dmitry.tsepelev@landy.io>",
   "dependencies": {
     "babel-core": "6.3.26",
+    "compression": "^1.6.1",
     "connect": "^3.4.0",
     "cookies": "0.5.1",
     "harmon": "1.3.1",
