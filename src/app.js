@@ -287,7 +287,7 @@ function proxyRequest(req, res) {
   }
 
   if (urlObj.protocol === 'https') options.agent = https.globalAgent
-  console.log(req.url)
+
   try {
     proxy.web(req, res, options)
   } catch (e) {

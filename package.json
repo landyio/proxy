@@ -1,7 +1,7 @@
 {
   "name": "proxy",
   "private": true,
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Landy all-in-one proxy",
   "author": "Dmitry Tsepelev <dmitry.tsepelev@landy.io>",
   "dependencies": {
