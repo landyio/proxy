@@ -8,6 +8,7 @@ const harmon = require('harmon')
 const request = require('request')
 const pathToRegexp = require('path-to-regexp')
 const Cookies = require('cookies')
+const helmet = require('helmet')
 
 
 // Defining enviroment variables
@@ -17,21 +18,18 @@ const proxyUrl = process.env.proxyUrl || 'http://proxy.landy.dev/'
 const env = process.env.NODE_ENV || 'dev'
 const sameOriginDomain = process.env.sameOrigin || 'landy.dev'
 
+const userAgent = 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
+
 
 // Creating http proxy
 const proxy = httpProxy.createProxyServer({})
 
 
-// Defining proxied page host to update
-// base parameter in HTML Dom
-let pagePathName
-
-
 /**
  * Compare domain and path to confirm
- * that redirect is allowed. Otherwise landy.js
- * would not be able to identify the page, when
- * it will be installed
+ * that redirect is allowed. Otherwise landy.min.js
+ * would not be able to validate current url, when
+ * it will be installed and apply variations
  * @param  {String} url1 Original URL
  * @param  {String} url2 Redirect URL
  * @return {Boolean}
@@ -55,110 +53,7 @@ function compareUrls(url1, url2) {
 }
 
 
-/**
- * onRequest() parse incoming URL parameter and
- * returns resource at this location through proxy
- */
-function onRequest(req, res) {
-  let urlParam
-
-  /**
-   * Validate if req.url was not encoded. This is a signal
-   * of appended slash before full URL. Used for scripts and
-   * stylesheets with full path on http protocol
-   */
-  if (req.url.indexOf('/http://') === 0) {
-    urlParam = req.url.slice(1)
-  }
-  // Parse and decode incoming url as parameter
-  if (!urlParam) {
-    const keys = []
-    const re = pathToRegexp('/:url+', keys)
-    const uri = re.exec(req.url)
-
-    if (!uri) {
-      res.end()
-      return
-    }
-
-    const uriParam = uri[1]
-    urlParam = decodeURIComponent(uriParam)
-  }
-
-
-  /**
-   * Validate if path is non-full
-   * and contains updates from 'campaignURL' cookie,
-   * which is set on the Meteor side
-   */
-  const isNotFullPath = (urlParam.indexOf('http') !== 0)
-
-
-  if (isNotFullPath) {
-    const cookies = new Cookies(req, res)
-    const parentUrl = decodeURIComponent(cookies.get('campaignURL'))
-
-    if (!parentUrl) {
-      res.end()
-      return
-    }
-
-    urlParam = url.resolve(parentUrl, urlParam)
-  }
-
-
-  const requestOptions = {
-    followAllRedirects: false,
-    uri: urlParam,
-    timeout: 2000,
-    strictSSL: false,
-  }
-
-  /**
-   * request() checks if there is redirect
-   * on proxied url and pass it to proxy
-   */
-  request(requestOptions, (error, response) => {
-    const validRedirect = (response &&
-      response.request &&
-      response.request.uri &&
-      response.request.uri.href !== urlParam &&
-      compareUrls(response.request.uri.href, urlParam))
-
-    if (validRedirect) urlParam = response.request.uri.href
-
-
-    const urlObj = url.parse(urlParam, true)
-
-
-    const relativeHost = urlObj.protocol + '//' + urlObj.host
-
-    pagePathName = urlObj.path
-
-
-    const options = {
-      changeOrigin: true,
-      secure: false,
-      target: relativeHost,
-      ws: true,
-      headers: {
-        host: urlObj.hostname,
-      },
-    }
-
-    if (urlObj.protocol === 'https') options.agent = https.globalAgent
-
-    delete req.headers.cookies
-    req.url = urlParam
-    try {
-      proxy.web(req, res, options)
-    } catch (e) {
-      console.log(urlParam)
-      console.log(e)
-    }
-  })
-}
-
+const app = connect()
 
 /**
  * Updating HTML Dom
@@ -187,7 +82,7 @@ const hrefTags = {
     // Updating head tag on the end of stream
     stm.on('end', () => {
       tag = tag.replace('http://', '/http://')
-      // Removing google analytics and tag manager scripts
+        // Removing google analytics and tag manager scripts
       stm.end(tag)
     })
   },
@@ -203,7 +98,7 @@ const headTag = {
   func(node) {
     const stm = node.createStream()
 
-  // Variable to hold all the info from the head tag
+    // Variable to hold all the info from the head tag
     let tag = ''
 
     // Collect all the data in the stream
@@ -240,10 +135,8 @@ const bodyTag = {
     })
 
     stm.on('end', () => {
-      // Update path name for Angular / Meteor support
       // Append editor.js to manipulate DOM
       stm.end(tag +
-        '<script>window.history.pushState("", "", "' + pagePathName + '");</script>' +
         '<script src="' + editorJs + '"></script>')
     })
   },
@@ -251,9 +144,89 @@ const bodyTag = {
 
 selects.push(bodyTag)
 
+app.use(harmon([], selects, true))
 
-const app = connect()
 
+/**
+ * onRequest() parse incoming URL parameter,
+ * prepares it for proxied and updates req.url
+ */
+function onRequest(req, res, next) {
+  let urlParam
+  /**
+   * Validate if req.url was not encoded. This is a signal
+   * of appended slash before full URL. Used for scripts and
+   * stylesheets with full path on http protocol
+   */
+  if (req.url.indexOf('/http://') === 0) {
+    urlParam = req.url.slice(1)
+  }
+
+  /**
+   * Validate if path is non-full
+   * and contains updates from 'campaignURL' cookie,
+   * which is set on the Meteor side
+   */
+  const isNotFullPath = (req.url.indexOf('http') === -1)
+
+  if (isNotFullPath) {
+    const cookies = new Cookies(req, res)
+    const parentUrl = decodeURIComponent(cookies.get('campaignURL'))
+
+    if (!parentUrl) {
+      res.end()
+      return
+    }
+
+    urlParam = url.resolve(parentUrl, req.url)
+  }
+
+
+  // Parse and decode incoming url as parameter
+  if (!urlParam) {
+    const keys = []
+    const re = pathToRegexp('/:url+', keys)
+    const uri = re.exec(req.url)
+    if (!uri) {
+      res.end()
+      return
+    }
+
+    const uriParam = uri[1]
+    urlParam = decodeURIComponent(uriParam)
+  }
+
+  const requestOptions = {
+    followAllRedirects: false,
+    headers: {
+      'User-Agent': userAgent,
+    },
+    uri: urlParam,
+    timeout: 2000,
+    strictSSL: false,
+  }
+
+  /**
+   * request() checks if there is redirect
+   * on proxied url and pass it to proxy
+   */
+  request(requestOptions, (error, response) => {
+    const validRedirect = (response &&
+      response.request &&
+      response.request.uri &&
+      response.request.uri.href !== urlParam &&
+      compareUrls(response.request.uri.href, urlParam))
+
+    if (validRedirect) urlParam = response.request.uri.href
+
+    delete req.headers.cookies
+    req.url = urlParam
+
+    next()
+  })
+}
+
+app.use(onRequest)
 
 /**
  * Update headers to allow embedding resource
@@ -265,6 +238,8 @@ app.use((req, res, next) => {
   res.writeHead = (statusCode, headers) => {
     res.removeHeader('X-Frame-Options')
     res.removeHeader('X-Content-Security-Policy')
+    res.removeHeader('Content-Security-Policy')
+    res.removeHeader('X-WebKit-CSP')
     res.removeHeader('Access-Control-Allow-Origin')
     res.setHeader('Access-Control-Allow-Origin', proxyUrl)
 
@@ -273,11 +248,51 @@ app.use((req, res, next) => {
   next()
 })
 
-// Update HTML Dom
-app.use(harmon([], selects, true))
+// Update Content security policy
 
-// Proxy resource
-app.use(onRequest)
+app.use(helmet.frameguard({
+  action: 'allow-from',
+  domain: sameOriginDomain,
+}))
+
+app.use(helmet.csp({
+  directives: {
+    'frame-ancestors': [sameOriginDomain],
+  },
+  reportOnly: false,
+  setAllHeaders: true,
+}))
+
+
+/**
+ * Proxing incoming url
+ */
+function proxyRequest(req, res) {
+  const urlObj = url.parse(req.url, true)
+
+  const relativeHost = urlObj.protocol + '//' + urlObj.host
+
+  const options = {
+    changeOrigin: true,
+    secure: false,
+    target: relativeHost,
+    ws: true,
+    headers: {
+      host: urlObj.hostname,
+    },
+  }
+
+  if (urlObj.protocol === 'https') options.agent = https.globalAgent
+
+  try {
+    proxy.web(req, res, options)
+  } catch (e) {
+    console.log(req.url)
+    console.log(e)
+  }
+}
+
+app.use(proxyRequest)
 
 
 /**
