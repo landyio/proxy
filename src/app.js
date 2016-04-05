@@ -83,7 +83,6 @@ const hrefTags = {
     // Updating head tag on the end of stream
     stm.on('end', () => {
       tag = tag.replace('http://', '/http://')
-        // Removing google analytics and tag manager scripts
       stm.end(tag)
     })
   },
@@ -242,8 +241,12 @@ app.use((req, res, next) => {
     res.removeHeader('X-Content-Security-Policy')
     res.removeHeader('Content-Security-Policy')
     res.removeHeader('X-WebKit-CSP')
+    res.removeHeader('X-Xss-Protection')
+    res.removeHeader('content-security-policy-report-only')
+    res.removeHeader('x-content-type-options')
     res.removeHeader('Access-Control-Allow-Origin')
     res.setHeader('Access-Control-Allow-Origin', proxyUrl)
+    res.setHeader('upgrade-insecure-requests', 1)
 
     res.oldWriteHead(statusCode, headers)
   }
@@ -264,6 +267,7 @@ app.use(helmet.csp({
   reportOnly: false,
   setAllHeaders: true,
 }))
+
 
 // Compress response
 app.use(compression())
