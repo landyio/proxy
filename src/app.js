@@ -205,6 +205,7 @@ function onRequest(req, res, next) {
     uri: urlParam,
     timeout: 2000,
     strictSSL: false,
+    rejectUnauthorized: false,
   }
 
   /**
@@ -220,7 +221,8 @@ function onRequest(req, res, next) {
 
     if (validRedirect) urlParam = response.request.uri.href
 
-    delete req.headers.cookies
+    // Remove cookies from request, to avoid 502 error
+    delete req.headers.cookie
     req.url = urlParam
 
     next()
