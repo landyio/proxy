@@ -83,6 +83,8 @@ const hrefTags = {
     // Updating head tag on the end of stream
     stm.on('end', () => {
       tag = tag.replace('http://', '/http://')
+      tag = tag.replace('\x27//', '\x27/http://')
+      tag = tag.replace('\x22//', '\x22/http://')
       stm.end(tag)
     })
   },
@@ -109,40 +111,19 @@ const headTag = {
     // Updating head tag on the end of stream
     stm.on('end', () => {
       // Removing google analytics and tag manager scripts
-      tag = tag.replace(
-        /(<script.*google-analytics.*\/script>)|(<script.*googletagmanager.*\/script>)|(<noscript.*googletagmanager.*\/noscript>)/gim,
-        '')
+      // tag = tag.replace(
+      //   /(<script.*google-analytics.*\/script>)|(<script.*googletagmanager.*\/script>)|(<noscript.*googletagmanager.*\/noscript>)/gim,
+      //   '')
 
       stm.end('<script>document.domain = "' + sameOriginDomain + '";</script>' +
         '<meta name="referrer" content="origin-when-crossorigin">' +
+        '<script src="' + editorJs + '"></script>' +
         tag)
     })
   },
 }
 
 selects.push(headTag)
-
-// Update body tag
-const bodyTag = {
-  query: 'body',
-
-  func(node) {
-    const stm = node.createStream({})
-    let tag = ''
-
-    stm.on('data', (data) => {
-      tag += data
-    })
-
-    stm.on('end', () => {
-      // Append editor.js to manipulate DOM
-      stm.end(tag +
-        '<script src="' + editorJs + '"></script>')
-    })
-  },
-}
-
-selects.push(bodyTag)
 
 app.use(harmon([], selects, true))
 
@@ -203,9 +184,8 @@ function onRequest(req, res, next) {
       'User-Agent': userAgent,
     },
     uri: urlParam,
-    timeout: 2000,
+    timeout: 3000,
     strictSSL: false,
-    rejectUnauthorized: false,
   }
 
   /**
@@ -279,7 +259,6 @@ app.use(compression())
  */
 function proxyRequest(req, res) {
   const urlObj = url.parse(req.url, true)
-
   const relativeHost = urlObj.protocol + '//' + urlObj.host
 
   const options = {
