@@ -36,6 +36,17 @@ E.g. at Landy.io we have a proxy on `https://proxy.landy.io` and a visual editor
 document.domain = 'landy.io'
 ```
 
+Use
+===
+
+To proxy any website use `proxyURL + encodeURLcomponent(proxiedUrl)`, where `proxyURL` - your proxyURL and `proxiedURL` is an url which you're going to proxy.
+
+For example:
+
+```
+https://proxy.landy.io/https%3A%2F%2Fwww.landy.io
+```
+
 
 Documentation
 ===
