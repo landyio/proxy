@@ -22,10 +22,11 @@ Configuring
 
 You should set ENV variables inside [docker image file](https://github.com/landyio/proxy/blob/master/Dockerfile)
 
-*editorJS* - script URL. Responsible for highlighting elements and removing javascript events to avoid navigation inside the iFrame. You can copy it from [repository](https://github.com/landyio/proxy/blob/master/src/editor.min.js) and upload somewhere on the server/CDN.
+**editorJS** - script URL. Responsible for highlighting elements and removing javascript events to avoid navigation inside the iFrame. You can copy it from [repository](https://github.com/landyio/proxy/blob/master/src/editor.min.js) and upload somewhere on the server/CDN.
 
-*proxyUrl* - url of your proxy. (`https://proxy.landy.io` in our case)
-*sameOrigin* - top-level domain, to support editing inside an iFrame (`landy.io` in our case)
+**proxyUrl** - url of your proxy. (`https://proxy.landy.io` in our case)
+
+**sameOrigin** - top-level domain, to support editing inside an iFrame (`landy.io` in our case)
 
 To edit an external website which was proxied to an iframe you will need to set the same top-level domain on your website and Proxy.
 
