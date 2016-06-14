@@ -3,7 +3,6 @@
   "env": {
     "browser": true,
     "node": true,
-    "meteor": true,
   },
 
   "rules": {
@@ -15,34 +14,5 @@
     "strict": 0,
     "curly": [0],
     "semi": [2, "never"]
-  },
-
-  "globals": {
-    // define your apps globals here
-    
-    // Packages
-    "Picker": true,
-    "FlowRouter": true,
-    "BlazeLayout": true,
-    "GeoJSON": false,
-    "EventEmitter": false,
-    "Roles": true,
-    "BrowserDetect": true,
-    "jQuery": true,
-    
-    // Components
-    "Template": true,
-    "Session": true,
-    "Meteor": true,
-    
-
-    // Collections
-    "Campaigns": true,
-
-	// Global variables
-	"hooks": true,
-	"CssSelectorGenerator": true,
-	"ElementName": true,
-	"ElementProcessor": true,
   }
 }
