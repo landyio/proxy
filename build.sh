@@ -1,1 +1,1 @@
-docker build -t "dtsepelev/proxy:latest" .
+docker build -t "landyio/proxy:latest" .
